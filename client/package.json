@@ -1,0 +1,32 @@
+{
+  "name": "traffic4-client",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "gh-pages": "^0.11.0",
+    "react-scripts": "0.7.0"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "dependencies": {
+    "animate.css": "^3.5.2",
+    "classnames": "^2.2.5",
+    "fuse.js": "^2.5.0",
+    "hover.css": "^2.0.2",
+    "lodash": "^4.17.2",
+    "react": "^15.3.2",
+    "react-dom": "^15.3.2",
+    "react-google-maps": "^6.0.1",
+    "react-icons": "^2.2.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject",
+    "deploy": "yarn run build && gh-pages -d build"
+  },
+  "proxy": "http://localhost:3001/",
+  "homepage": "http://github.io/ahmedzahin/traffic4"
+}

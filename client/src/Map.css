@@ -1,0 +1,22 @@
+.Map {
+  height: 100vh;
+  width: 70%;
+  float: left;
+}
+
+.Map--loading {
+  height: 100vh;
+  width: 70%;  
+  float: left;
+}
+
+.Map--loading-placeholder {
+  background: #E5E3DF;
+  height: 100vh;
+  margin: 1em;
+}
+
+.Map--element {
+  height: 100vh;
+  background: #E5E3DF;
+}
