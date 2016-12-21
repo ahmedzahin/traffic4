@@ -5,4 +5,10 @@
 
 .Sidebar--list li{
   cursor: pointer;
+  text-decoration: none;
+}
+
+.Sidebar--list{
+  height: 100vh;
+  overflow: scroll;
 }

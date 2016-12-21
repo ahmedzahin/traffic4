@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-// import Fuse from 'fuse.js';
+import { isEqual } from 'lodash';
+import Fuse from 'fuse.js';
 
 import './Search.css';
 
@@ -9,33 +10,30 @@ class Search extends Component {
 
     this.state = {
       counter: 1,
-      list: []
+      list: new Fuse(this.props.places, {keys: ['stand_name']}),
+      value: ''
     }
 
+    this.handleOnChange = this.handleOnChange.bind(this);
   }
 
-  componentDidMount() {
+  componentWillReceiveProps(nextProps){
+    if(!isEqual(this.props.places, nextProps.places)){
+      this.setState({list: new Fuse(nextProps.places, {keys: ['stand_name']})})
+    }
+  }
 
-    const route = 'bus_names';
-
-    fetch("/api/"+route)
-        .then(
-          (response) => {
-            response.json().then(function(data) {
-              // console.log(data);
-            });
-          }
-        ).catch(function(err) {
-          this.setState({
-            placeFetchStatus: "ERROR"
-          })
-        });
+  handleOnChange(event){
+    this.props.setList(this.state.list.search(event.target.value));
+    this.setState({
+      value: event.target.value
+    })
   }
 
   render() {
     return (
       <div className="Search">
-
+        <input value={this.state.value} onChange={this.handleOnChange}/>
       </div>
     )
   }

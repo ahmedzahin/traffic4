@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import withScriptjs from 'react-google-maps/lib/async/withScriptjs';
-import { withGoogleMap, GoogleMap, DirectionsRenderer, Marker } from 'react-google-maps';
-import { find, filter, isEmpty, minBy, maxBy } from 'lodash';
+import { withGoogleMap, GoogleMap, DirectionsRenderer, Marker} from 'react-google-maps';
+import { find, filter, isEmpty, minBy, maxBy, isEqual } from 'lodash';
 
 import './Map.css';
 
@@ -30,8 +30,8 @@ class Map extends Component {
     this.state = {
       routes: [],
       stands: [],
-      match: {},
-      matchedRoutes: [],
+      buses: [],
+      currentRoutes: [],
       markers: [],
       center: { lat: 23.8103461, lng: 90.4124999 },
       zoom: 13,
@@ -39,15 +39,15 @@ class Map extends Component {
     }
 
     // this.handleScroll = this.handleScroll.bind(this);
+    this.mapRoute = this.mapRoute.bind(this);
+    this.mapDirection = this.mapDirection.bind(this);
   }
 
-
-  componentDidMount() {
-
+  dataCheck(){
     const that = this;
 
     if(isEmpty(this.state.routes)){
-      fetch("https://traffic-server-wlwimimhdy.now.sh"+'/api/routes')
+      fetch('https://traffic-server-ehmassnwsa.now.sh/api/routes')
         .then(
           response => {
             response.json().then(
@@ -60,7 +60,7 @@ class Map extends Component {
     }
 
     if(isEmpty(this.state.stands)){
-      fetch("https://traffic-server-wlwimimhdy.now.sh"+'/api/stand_geocodes')
+      fetch('https://traffic-server-ehmassnwsa.now.sh/api/stand_geocodes')
         .then(
           response => {
             response.json().then(
@@ -70,6 +70,25 @@ class Map extends Component {
             )
         })
     }
+
+    if(isEmpty(this.state.buses)){
+      fetch('https://traffic-server-ehmassnwsa.now.sh/api/bus_names')
+        .then(
+          response => {
+            response.json().then(
+              data => {
+                that.setState({buses: data});
+              }
+            )
+          }
+        );
+    }
+  }
+
+
+  componentDidMount() {
+    this.dataCheck()
+  }
 
     // fetch('/api/stand_names')
     //   .then(
@@ -92,90 +111,102 @@ class Map extends Component {
     //           });
     //         });
     //       });
-  }
 
   componentWillReceiveProps(nextProps){
     if(this.props.stand.id !== nextProps.stand.id){
       const that = this;
 
-      const stand = find(this.state.stands, stand => {
-        return stand['stand_id'] === nextProps.stand.id
-      })
+      this.dataCheck();
 
-      if(stand){
-        this.setState({
-          center: { lat: stand.lat, lng: stand.lng},
-          zoom: 16
+      if(!isEmpty(this.state.stands)){
+          const stand = find(this.state.stands, stand => {
+          return stand['stand_id'] === nextProps.stand.id
         })
+
+        if(stand){
+          this.setState({
+            center: { lat: stand.lat, lng: stand.lng},
+            zoom: 16
+          })
+        }
+      }else{
+        this.dataCheck();
       }
 
-      const routeMatch = find(that.state.routes, route => {
-        return route['stand_id'] === nextProps.stand.id
-      });
+      if(!isEmpty(this.state.routes)){
+        const routeMatch = filter(that.state.routes, route => {
+          return route['stand_id'] === nextProps.stand.id
+        });
 
-      if(routeMatch){
-        that.setState({match: routeMatch});
-
-        setTimeout(
-          () => {
-            const routeList = filter(that.state.routes, route =>{
-              return route['bus_id'] === that.state.match['bus_id'];
-            });
-
-            if(routeList){
-              that.setState({matchedRoutes: routeList});
-              this.mapRoute();
-            }
-          }, 1000
-        )
+        this.mapRoute(routeMatch);
+      }else{
+        this.dataCheck();
       }
+    }
+
+    if(!isEqual(this.props.route, nextProps.route)){
+      this.mapDirection(nextProps.route);
     }
   }
 
-  mapRoute(){
+  mapRoute(routeList){
+    const stand = find(this.state.stands, stand => (stand['stand_id'] === routeList[0]['stand_id']))['stand_name'];
 
-    const markers = this.state.matchedRoutes.map(
+    const multiroute = routeList.map(
       route => {
-        const coordObj = find(this.state.stands,
-          stand => (route['stand_id'] === stand['stand_id'])
-        )
         return {
-          position: { lat: coordObj.lat, lng: coordObj.lng},
-          key: 'route'+route['route_id'],
+          id: route['bus_id'],
+          bus: find(this.state.buses, bus => (bus['bus_id'] === route['bus_id']))['bus_name'],
+          routes: filter(this.state.routes, multiroute => (multiroute['bus_id'] === route['bus_id']))
+                      .map(route => {
+                        return find(this.state.stands, stand => (stand['stand_id'] === route['stand_id']))
+                      })
+        }
+      }
+    )
+
+    this.setState({currentRoutes: multiroute});
+    this.props.setRouteOptions(multiroute);
+  }
+
+  mapDirection(route){
+    const routes = route.routes.filter(
+      route => {
+        return route !== undefined;
+      }
+    )
+
+    const markers = routes.map(
+      route => {
+        const marker = {
+          position: {lat: route.lat, lng: route.lng},
+          id: route['stand_id']+route.lat+route.lng,
           defaultAnimation: 2
         }
+
+        return marker;
       }
     )
 
     const DirectionsService = new window.google.maps.DirectionsService();
 
-    const min = minBy(this.state.matchedRoutes, route => route['route_id']);
-    const max = maxBy(this.state.matchedRoutes, route => route['route_id']);
+    const min = minBy(routes, route => route['stand_id']);
+    const max = maxBy(routes, route => route['stand_id']);
 
-    const origin = find(this.state.stands,
-      stand => {
-        return (stand['stand_id'] === min['stand_id'])
-      }
-    );
+    const origin = {lat: min.lat, lng: min.lng};
 
-    const destination = find(this.state.stands,
-      stand => {
-        return (stand['stand_id'] === max['stand_id'])
-      }
-    );
-    console.log(origin);
-    console.log(max);
+    const destination = {lat: max.lat, lng: max.lng};
 
     DirectionsService.route({
-      origin: { lat: origin.lat, lng: origin.lng},
-      destination: { lat: destination.lat, lng: destination.lng},
+      origin: origin,
+      destination: destination,
       travelMode: window.google.maps.TravelMode.DRIVING,
     }, (result, status) => {
       if (status === window.google.maps.DirectionsStatus.OK) {
         this.setState({
           directions: result,
           markers: markers
-        });
+         });
       } else {
         console.error(`error fetching directions ${result}`);
       }

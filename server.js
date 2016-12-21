@@ -3,8 +3,8 @@ var Sequelize = require('sequelize'),
     http = require('http');
 
 // Define your models
-var database = new Sequelize('traffic4', 'root', 'mysql', {
-  host: 'localhost',
+var database = new Sequelize('sql6150357', 'sql6150357', 'eJzAs7AFUH', {
+  host: 'sql6.freemysqlhosting.net',
   dialect: 'mysql',
   define: {
         timestamps: false
@@ -21,6 +21,12 @@ var server, app;
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
   server = http.createServer(app);
+
+  app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+  });
 
 // Initialize epilogue
 epilogue.initialize({
